@@ -1,0 +1,100 @@
+---
+title: "Classification of products based on product description"
+author: "Ravi Vanam"
+date: "July 13, 2017"
+output: html_document
+---
+## R Markdown
+Grocery store receipts often times contain abbreviated, and even cryptic, language
+representing the products that have been sold. In order to better understand the group the types
+of products our users buy, design an automated process that assigns a product category to
+each line-item parsed from a receipt. 
+
+building supervised machine learning models.
+
+
+
+##Data
+
+This data has 4 columns
+  1. id
+  2. product_text
+  3. retailer
+  4. category
+
+product_text and retailer are input variables and category is the target variable.
+
+#Process:
+1.	Load the data.
+2.	Understood the data, Clean the data. Removed the "id" column since it's not useful for prediction.
+3.	The "product_text" column has long sentences. Feature engineered and made this column in to seven columns, each column containing a word/number. So now I have 8 input features.
+4.	Divide this data containing 14767 observations in to train(80%) and validation(20%) data to assess the model performance.
+5.	I built Support Vector Machines(SVM) and Naïve Bayes models using training data and measured the model performance using validation data.
+6.	I got better accuracy for SVM model.
+7.	Now using whole labeled data as training data, trained the SVM model.
+8.	Using the above model, predicted the categories on unlabeled data.
+
+```{r}
+library(caret)
+setwd("H:\\WorkSpace\\Interns\\Ibotta\\ibotta_ds_intern_exercise")
+ibotta_data <- read.csv("trn.csv")
+data_partition <- createDataPartition(ibotta_data[,9], p = 0.8, list = FALSE)
+train_data <- ibotta_data[data_partition, ]
+validation_data <- ibotta_data[-data_partition, ]
+
+unlabled_data <- read.csv("unlabled.csv")
+labled_data <- read.csv("labeled2.csv")
+
+combined_data <- read.csv("combined_data.csv")
+train_new <- combined_data[1:14767,]
+test_data <- combined_data[-c(1:14767),]
+#write.csv(test_data, file = "test_data.csv")
+
+
+
+```
+
+#Support Vector Machines Model
+```{r}
+library(e1071)
+svm.fit <- svm(category ~ ., data = train_new,kernel='linear', scale=FALSE)
+
+preds_svm <- predict(svm.fit, newdata = validation_data[,-9])
+confusionMatrix(preds_svm, validation_data$category)
+
+
+preds_svm_actual <- predict(svm.fit, newdata = test_data[,-9]) 
+#write.csv(as.data.frame(preds_svm_actual), file = "predicted_svm.csv")
+Results_svm <- data.frame(summary(validation_data$category),summary(preds_svm),summary(preds))
+Results_svm
+
+
+```
+
+
+#Naive Bayes Model
+```{r}
+
+library(kernlab)
+library(caret)
+
+setwd("H:\\WorkSpace\\Interns\\Ibotta\\ibotta_ds_intern_exercise")
+ibotta_data2 <- read.csv("trn.csv")
+
+data_partition2 <- createDataPartition(ibotta_data2[,9], p = 0.8, list = FALSE)
+train_data <- ibotta_data2[data_partition2, ]
+validation_data <- ibotta_data2[-data_partition2, ]
+
+library(e1071)
+nb_model <- naiveBayes(category ~ ., data = train_new)
+
+preds_nb_actual <- predict(nb_model, newdata = test_data[,-9]) 
+#write.csv(preds_nb_actual, file = 'preds_nb_actual.csv')
+
+
+preds <- predict(nb_model, newdata = validation_data[,-9])
+confusionMatrix(preds, validation_data$category)
+results_nb <- data.frame(summary(validation_data$category),summary(preds))
+results_nb
+```
+
